@@ -3,31 +3,62 @@
     <head>
         <meta charset="utf-8">
         <title>HTML internal links</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
         <style media="screen">
           img {
-            width: 800px;
-            /*display: block;
+            width: 80%;
+            display: block;
             margin-left: auto;
-            margin-right: auto;8*/
+            margin-right: auto;
+          }
+          #menu, #web-hist{
+            list-style: none;
+          }
+          body {
+            background-color: #f2dc9b;
+            text-align: center;
+            margin: 50px;
+          }
+          h1 {
+            font-size: 80px;
+          }
+          p, strong, a{
+            font-size: 40px;
+          }
+          h2{
+            font-size: 70px;
+          }
+          #versions li{
+            font-size: 40px;
+            text-align: left;
+          }
+          #versions {
+            margin-left: 100px;
+            margin-right: 100px;
+          }
+          h1,h2,h3,p,li,strong {
+            font-family: 'Roboto', sans-serif;
           }
         </style>
     </head>
     <body>
 
         <h1>HTML: HyperText Markup Language</h1>
-        <ul>
+        <ul id="menu">
             <li><a href="#web-history">History of the web</a></li>
-            <li><a href = "#hist">History of HTML versions</li></a>
+            <li><a href = "#hist">History of HTML versions</a></li>
         </ul>
         <p>Tim Berners-Lee invented the first browser at CERN, to enable researchers to share their research with eachother.</p>
 
         <p>
-        <img src="https://www.kasandbox.org/programming-images/misc/tim-berners-lee-webpage.png" width="200">
+        <img src="/static/img/tim-berners-lee-webpage.png" width="200">
         <br>Image courtesy CERN
         </p>
 
         <h2 id="web-history">History of the web</h2>
-        <ul>
+        <ul id="web-hist">
             <li><strong>1989: The motivation</strong>
                 <p>CERN Physicist Tim Berners-Lee needed “a pool of information which could grow and evolve with the organisation and the projects it describes.”
                 <br>
@@ -57,13 +88,13 @@
         </ul>
 
         <h2 id = "hist">History of HTML versions</h2>
-        <ul>
+        <ul id = "versions">
             <li>1995: HTML 2.0</li>
             <li>1997 (Jan): HTML 3.2</li>
             <li>1997 (Dec): HTML 4.0</li>
             <li>1999: HTML 4.01</li>
-            <li>2004: "HTML5" is proposed by WHATWG, a new committee</li>
-            <li>2008: HTML5 is adopted by W3C as a standard.</li>
+            <li>2004: "HTML5" is proposed by <a href="https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwiI2Oy1tsH4AhWXaMAKHTfKDeoQ-TAoAHoECEwQAQ&url=https%3A%2F%2Fwhatwg.org%2F&usg=AOvVaw22mtXjhRMi6mpWREDQO6le">WHATWG</a>, a new committee</li>
+            <li>2008: HTML5 is adopted by <a href="https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjY87XxtsH4AhWGQkEAHX-SCO0Q-TAoAHoECFEQAQ&url=http%3A%2F%2Fwww.w3.org%2F&usg=AOvVaw3HkEaIbSmnsjdIkG7TOPE7">W3C</a> as a standard.</li>
         </ul>
         <p>Read more on <a href="http://en.wikipedia.org/wiki/HTML#HTML_versions_timeline">Wikipedia</a></p>
 
