@@ -2,597 +2,590 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tiny Platformer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tiny HTML RPG</title>
 <style>
-  :root {
-    --ui-bg: rgba(20,22,30,.8);
-    --ui-fg: #fff;
-    --accent: #7ae582;
-    --danger: #ff5964;
-    --gold: #ffd166;
+  :root{
+    --bg:#0e1013; --panel:#171a1f; --muted:#8b95a7; --bright:#e2e8f0;
+    --accent:#7c3aed; --accent-2:#22c55e; --danger:#ef4444; --gold:#f59e0b;
+    --tile:#202531; --tile-2:#1a1f2b; --grid:#283041;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ui: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif;
   }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; height: 100%; background: #0e0f14; color: var(--ui-fg);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background: radial-gradient(1200px 800px at 20% 0%, #121828, #0b0d12 60%) fixed;
+    color:var(--bright); font-family:var(--ui); display:flex; align-items:center; justify-content:center; padding:14px;
   }
-  #wrap {
-    position: relative; width: 100%; height: 100vh; overflow: hidden;
-    display: grid; place-items: center;
+  .app{
+    display:grid; gap:12px; width:min(1000px, 100vw); grid-template-columns: 1fr 320px;
   }
-  canvas { width: 100%; height: 100%; display: block; background:#141824; }
-  /* HUD */
-  .hud {
-    position: absolute; inset: 0; pointer-events: none;
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 10px;
+  header{
+    grid-column:1/-1; background:linear-gradient(180deg,#1b2030,#121723);
+    border:1px solid #2a3347; border-radius:12px; padding:10px 12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
   }
-  .hud .panel {
-    background: var(--ui-bg); border: 1px solid #2b2f3a; border-radius: 10px;
-    padding: 8px 12px; margin: 4px; font-weight: 600; backdrop-filter: blur(6px);
+  header .stat{display:flex; align-items:center; gap:8px; background:#121622; border:1px solid #2a3347; padding:6px 10px; border-radius:10px;}
+  .hpbar{height:10px; width:140px; background:#261b1b; border-radius:8px; overflow:hidden; border:1px solid #3b2b2b}
+  .hpbar > i{display:block; height:100%; background:linear-gradient(90deg,#ef4444,#f97316); width:100%}
+  .xpbar{height:10px; width:140px; background:#1a1b2d; border-radius:8px; overflow:hidden; border:1px solid #2e3050}
+  .xpbar > i{display:block; height:100%; background:linear-gradient(90deg,#7c3aed,#22d3ee); width:0%}
+  .pill {font-weight:600; font-variant-numeric:tabular-nums}
+  .gold{color:var(--gold)}
+  main{
+    display:grid; grid-template-rows:auto 1fr; gap:12px;
   }
-  .hud .panel span.icon { margin-right: 6px; }
-  .center-msg {
-    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    background: var(--ui-bg); border: 1px solid #2b2f3a; border-radius: 14px;
-    padding: 18px 20px; text-align: center; min-width: 280px; pointer-events: none;
-    opacity: 0; transition: opacity .25s ease;
+  .viewport{
+    background:repeating-linear-gradient(0deg,var(--tile),var(--tile) 32px,var(--tile-2) 32px,var(--tile-2) 64px);
+    border:1px solid #2a3347; border-radius:12px; padding:10px; position:relative;
+    box-shadow: inset 0 0 0 1px #283041, 0 10px 40px rgba(0,0,0,.35);
   }
-  .center-msg.show { opacity: 1; }
-  .center-msg h1 { margin: 0 0 6px; font-size: 22px; }
-  .center-msg p { margin: 4px 0; opacity: .9; }
-  .kbd { display: inline-block; padding: 2px 6px; background:#22283a; border-radius:6px; border:1px solid #2b2f3a; font-weight:700; }
-  /* Touch controls */
-  .touch {
-    position: absolute; bottom: 16px; left: 16px; right: 16px;
-    display: none; justify-content: space-between; align-items: center;
-    pointer-events: none;
+  canvas{display:block; width:100%; height:auto; image-rendering: pixelated}
+  .right{
+    display:grid; grid-template-rows:auto 1fr auto; gap:12px;
   }
-  .pad, .btn {
-    pointer-events: auto;
-    width: 64px; height: 64px; border-radius: 50%;
-    background: var(--ui-bg); border: 1px solid #2b2f3a;
-    display: grid; place-items: center; user-select: none;
-    touch-action: none;
+  .panel{
+    background:var(--panel); border:1px solid #2a3347; border-radius:12px; padding:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
   }
-  .pad { width: 84px; height: 84px; }
-  .touch .left-right { display:flex; gap:12px; }
-  .btn:active, .pad:active { transform: scale(.98); }
-  @media (max-width: 860px) {
-    .touch { display: flex; }
+  .panel h3{margin:0 0 8px 0; font-size:15px; color:#cdd6e5}
+  .log{height:240px; overflow:auto; font-family:var(--mono); background:#0f1420; border-radius:10px; padding:10px; border:1px solid #283041}
+  .log p{margin:.4em 0}
+  .controls{display:flex; flex-wrap:wrap; gap:8px}
+  button{
+    background:#141a28; border:1px solid #2a3347; color:var(--bright); padding:8px 10px; border-radius:10px; cursor:pointer;
+    transition:transform .02s ease, background .2s ease, border-color .2s ease; font-weight:600;
   }
-  a { color: var(--accent); text-decoration: none; }
+  button:hover{background:#192033; border-color:#3a4561}
+  button:active{transform:translateY(1px)}
+  button.primary{background:linear-gradient(180deg,#2a3559,#1a2340); border-color:#3b4a79}
+  kbd{background:#111523; border:1px solid #2a3347; padding:2px 6px; border-radius:6px; font-family:var(--mono); color:#cfe3ff}
+  .legend{display:grid; grid-template-columns:1fr 1fr; gap:6px; font-family:var(--mono); font-size:12px; color:var(--muted)}
+  .legend span{display:flex; gap:6px; align-items:center}
+  .badge{display:inline-grid; place-items:center; width:18px; height:18px; border-radius:4px; font-size:12px; background:#101523; border:1px solid #30405e}
+  footer{grid-column:1/-1; text-align:center; color:var(--muted); font-size:12px}
+  @media (max-width: 840px){
+    .app{grid-template-columns:1fr}
+  }
+  /* Map glyph styles for HTML fallback (non-canvas) if needed */
+  .mapgrid{display:grid; grid-template-columns: repeat(10, 1fr); gap:2px; font-family:var(--mono)}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0}
 </style>
 </head>
 <body>
-<div id="wrap">
-  <canvas id="game" width="1280" height="720" aria-label="Platformer game canvas"></canvas>
-
-  <div class="hud" aria-hidden="true">
-    <div class="panel" id="scorePanel"><span class="icon">🌟</span><span id="score">0</span>/<span id="total">0</span></div>
-    <div class="panel" id="hintPanel">Move: ←→ / A D &nbsp;•&nbsp; Jump: <span class="kbd">Z</span> or <span class="kbd">Space</span> &nbsp;•&nbsp; Pause: <span class="kbd">P</span></div>
-  </div>
-
-  <div class="center-msg" id="centerMsg">
-    <h1 id="centerTitle"></h1>
-    <p id="centerBody"></p>
-  </div>
-
-  <div class="touch">
-    <div class="left-right">
-      <div class="pad" data-hold="left" aria-label="Move left">◀</div>
-      <div class="pad" data-hold="right" aria-label="Move right">▶</div>
+<div class="app" role="application" aria-label="Tiny HTML RPG">
+  <header>
+    <div class="stat" aria-live="polite" aria-atomic="true">
+      <strong>HP</strong>
+      <div class="hpbar" title="Health"><i id="hpFill" style="width:100%"></i></div>
+      <span id="hpText" class="pill">10/10</span>
     </div>
-    <div style="display:flex; gap:12px;">
-      <div class="btn" data-tap="jump" aria-label="Jump">⤴</div>
-      <div class="btn" data-tap="pause" aria-label="Pause">⏸</div>
+    <div class="stat" aria-live="polite" aria-atomic="true">
+      <strong>XP</strong>
+      <div class="xpbar" title="Experience"><i id="xpFill"></i></div>
+      <span id="lvlText" class="pill">Lv 1</span>
     </div>
-  </div>
+    <div class="stat"><strong>ATK</strong> <span id="atkText" class="pill">2</span></div>
+    <div class="stat"><strong>DEF</strong> <span id="defText" class="pill">1</span></div>
+    <div class="stat"><strong>Gold</strong> <span id="goldText" class="pill gold">0</span></div>
+    <div class="stat"><strong>Potions</strong> <span id="potsText" class="pill">1</span></div>
+    <div class="stat" title="Keyboard: arrows or WASD">
+      <strong>Move</strong>&nbsp;<kbd>WASD</kbd>/<kbd>←↑↓→</kbd>
+    </div>
+  </header>
+
+  <main>
+    <div class="viewport">
+      <canvas id="view" width="640" height="640" aria-label="Dungeon map" role="img"></canvas>
+      <div class="sr-only" aria-live="polite" id="ariaStatus"></div>
+    </div>
+  </main>
+
+  <section class="right">
+    <div class="panel">
+      <h3>Actions</h3>
+      <div class="controls">
+        <button class="primary" id="btnNew">New Run</button>
+        <button id="btnSave">Save</button>
+        <button id="btnLoad">Load</button>
+        <button id="btnPotion">Drink Potion</button>
+        <button id="btnHelp">Help</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Quest & Inventory</h3>
+      <div id="quest">Find the stairs <span class="badge">&gt;</span>, defeat the floor boss <span class="badge">B</span>, and reach Floor 3.</div>
+      <div style="margin-top:8px; font-family:var(--mono); color:var(--muted)" id="inv"></div>
+      <div class="legend" style="margin-top:10px">
+        <span><i class="badge">@</i> You</span>
+        <span><i class="badge">G</i> Goblin</span>
+        <span><i class="badge">S</i> Slime</span>
+        <span><i class="badge">B</i> Boss</span>
+        <span><i class="badge">T</i> Treasure</span>
+        <span><i class="badge">&gt;</i> Stairs</span>
+        <span><i class="badge">#</i> Wall</span>
+        <span><i class="badge">.</i> Floor</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Event Log</h3>
+      <div id="log" class="log" aria-live="polite" aria-atomic="false"></div>
+    </div>
+  </section>
+
+  <footer>Made with plain HTML, CSS, and JavaScript. No libraries. Have fun!</footer>
 </div>
 
 <script>
-(() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-
-  // Resize to device size but keep logical world scale
-  function fitCanvas() {
-    const {clientWidth:w, clientHeight:h} = canvas;
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  new ResizeObserver(fitCanvas).observe(canvas);
-  fitCanvas();
-
-  // --- Utilities ---
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const sgn = v => v<0?-1:v>0?1:0;
-
-  class Rect {
-    constructor(x,y,w,h){ this.x=x; this.y=y; this.w=w; this.h=h; }
-    get left(){ return this.x; } get right(){ return this.x+this.w; }
-    get top(){ return this.y; }  get bottom(){ return this.y+this.h; }
-    intersects(o){
-      return this.right>o.left && this.left<o.right && this.bottom>o.top && this.top<o.bottom;
-    }
-  }
-
-  // --- Input ---
-  const keys = {left:false, right:false, up:false, jump:false, pause:false};
-  const setKey = (k, v) => { keys[k]=v; };
-
-  const KEYMAP = {
-    ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:null,
-    KeyA:'left', KeyD:'right', KeyW:'up', KeyS:null,
-    Space:'jump', KeyZ:'jump', KeyX:null, KeyP:'pause',
-    Enter:null
+(()=> {
+  // --- Core data ------------------------------------------------------------
+  const SIZE = 10;
+  const TILE = 64; // canvas pixels per tile
+  const glyphs = {
+    empty:'.', wall:'#', player:'@', goblin:'G', slime:'S', treasure:'T', stairs:'>', boss:'B'
   };
-  window.addEventListener('keydown', (e)=>{
-    if (KEYMAP[e.code] !== undefined && KEYMAP[e.code] !== null) {
-      setKey(KEYMAP[e.code], true);
-      e.preventDefault();
-    }
-  }, {passive:false});
-  window.addEventListener('keyup', (e)=>{
-    if (KEYMAP[e.code] !== undefined && KEYMAP[e.code] !== null) {
-      setKey(KEYMAP[e.code], false);
-      e.preventDefault();
-    }
-  }, {passive:false});
+  const colors = {
+    bg:'#121826', grid:'#283041', floor1:'#1b2233', floor2:'#0f1420',
+    wall:'#2f3b54', wallEdge:'#3b4a79',
+    player:'#e2e8f0', goblin:'#22c55e', slime:'#22d3ee', treasure:'#f59e0b', stairs:'#a78bfa', boss:'#ef4444'
+  };
 
-  // Touch controls
-  const holds = new Set();
-  const touchEl = document.querySelector('.touch');
-  function bindHold(el, key){
-    const on = (e)=>{ holds.add(key); keys[key]=true; e.preventDefault(); };
-    const off = (e)=>{ holds.delete(key); keys[key]=false; e.preventDefault(); };
-    ['pointerdown','touchstart'].forEach(t=>el.addEventListener(t,on,{passive:false}));
-    ['pointerup','pointercancel','pointerleave','touchend'].forEach(t=>el.addEventListener(t,off,{passive:false}));
+  const state = {
+    floor:1,
+    player:{x:0,y:0,hp:10,maxHp:10,atk:2,def:1,lvl:1,xp:0,next:10,gold:0,potions:1},
+    items:[], // {name, qty}
+    map:[],   // 2D array of tiles
+    units:[], // enemies etc. {type,hp,atk,def,x,y,xp,gold}
+    stairs:{x:0,y:0},
+    bossAlive:false,
+    rng: mulberry32(Date.now() % 2**31)
+  };
+
+  // --- Utilities ------------------------------------------------------------
+  function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15, t|1);t^=t+Math.imul(t^t>>>7, t|61);return ((t^t>>>14)>>>0)/4294967296}}
+  function randi(min,max){return Math.floor(state.rng()*(max-min+1))+min}
+  function choice(arr){return arr[Math.floor(state.rng()*arr.length)]}
+  function clamp(n,min,max){return Math.max(min, Math.min(max,n))}
+  function key(x,y){return x+','+y}
+  const dirs = { 'ArrowUp':[0,-1],'ArrowDown':[0,1],'ArrowLeft':[-1,0],'ArrowRight':[1,0],
+                 'KeyW':[0,-1],'KeyS':[0,1],'KeyA':[-1,0],'KeyD':[1,0] };
+
+  // --- Map generation -------------------------------------------------------
+  function newRun(){
+    Object.assign(state.player,{hp:10,maxHp:10,atk:2,def:1,lvl:1,xp:0,next:10,gold:0,potions:1});
+    state.items = [];
+    state.floor = 1;
+    generateFloor();
+    clearLog();
+    log(`Welcome, adventurer! Use WASD or arrows to move.`);
+    log(`Quest: Reach Floor 3, clearing bosses.`);
+    paint();
+    syncUI();
   }
-  document.querySelectorAll('[data-hold="left"]').forEach(el=>bindHold(el,'left'));
-  document.querySelectorAll('[data-hold="right"]').forEach(el=>bindHold(el,'right'));
-  document.querySelectorAll('[data-tap="jump"]').forEach(el=>{
-    el.addEventListener('pointerdown', e=>{ keys.jump=true; e.preventDefault(); }, {passive:false});
-    el.addEventListener('pointerup',   e=>{ keys.jump=false; e.preventDefault(); }, {passive:false});
-    el.addEventListener('click', e=>e.preventDefault());
-  });
-  document.querySelectorAll('[data-tap="pause"]').forEach(el=>{
-    el.addEventListener('click', e=>{ togglePause(); e.preventDefault(); });
-  });
 
-  // --- World constants ---
-  const GRAVITY = 2200;
-  const MOVE_ACCEL = 2000;
-  const MOVE_MAX = 320;
-  const FRICTION = 1800;
-  const JUMP_VELOCITY = 760;
-  const COYOTE_TIME = 0.09;     // Allow jump shortly after leaving ground
-  const JUMP_BUFFER = 0.12;     // Queue jump shortly before landing
-  const MAX_JUMPS = 2;          // Double jump
-
-  // --- Entities ---
-  class Player {
-    constructor(x,y){
-      this.r = new Rect(x,y,32,42);
-      this.vx = 0; this.vy = 0;
-      this.onGround = false;
-      this.coyote = 0;
-      this.jumpBuffer = 0;
-      this.jumpCount = 0;
-      this.dead = false;
+  function generateFloor(){
+    // build empty map
+    state.map = Array.from({length:SIZE}, ()=> Array.from({length:SIZE}, ()=> glyphs.empty));
+    // outer walls
+    for (let x=0;x<SIZE;x++){state.map[0][x]=glyphs.wall; state.map[SIZE-1][x]=glyphs.wall;}
+    for (let y=0;y<SIZE;y++){state.map[y][0]=glyphs.wall; state.map[y][SIZE-1]=glyphs.wall;}
+    // sprinkle inner walls
+    const walls = 18 + state.floor*2;
+    for (let i=0;i<walls;i++){
+      const x=randi(1,SIZE-2), y=randi(1,SIZE-2);
+      state.map[y][x]=glyphs.wall;
     }
-    update(dt, solids){
-      // Horizontal input
-      const want = (keys.left?-1:0) + (keys.right?1:0);
-      if (want !== 0) {
-        this.vx += want*MOVE_ACCEL*dt;
-      } else {
-        // friction
-        const sign = sgn(this.vx);
-        const mag = Math.max(0, Math.abs(this.vx) - FRICTION*dt);
-        this.vx = mag*sign;
-      }
-      this.vx = clamp(this.vx, -MOVE_MAX, MOVE_MAX);
+    // ensure some paths by carving random walk
+    let cx=randi(1,SIZE-2), cy=randi(1,SIZE-2);
+    for (let i=0;i<80;i++){
+      state.map[cy][cx]=glyphs.empty;
+      const d = choice([[1,0],[-1,0],[0,1],[0,-1]]);
+      cx = clamp(cx+d[0],1,SIZE-2); cy = clamp(cy+d[1],1,SIZE-2);
+      state.map[cy][cx]=glyphs.empty;
+    }
+    // place player at an empty tile far from stairs later
+    const empties = allEmpty();
+    const p = choice(empties);
+    state.player.x = p.x; state.player.y = p.y;
 
-      // Jump queue
-      this.coyote -= dt;
-      this.jumpBuffer -= dt;
-      if (keys.jump) this.jumpBuffer = JUMP_BUFFER;
+    // place stairs
+    let s; do { s = choice(empties) } while (dist(p,s) < 8);
+    state.stairs = s;
+    state.map[s.y][s.x] = glyphs.stairs;
 
-      // Apply gravity
-      this.vy += GRAVITY * dt;
-      // Integrate & collide: X
-      this.r.x += this.vx*dt;
-      this.resolve(solids, true);
-      // Integrate & collide: Y
-      this.r.y += this.vy*dt;
-      const hitY = this.resolve(solids, false);
-      // Ground detection
-      if (hitY === 1) { // landed
-        this.onGround = true; this.coyote = COYOTE_TIME; this.jumpCount = 0;
-      } else if (hitY === -1) { // bumped ceiling
-        this.vy = Math.max(0, this.vy);
-      } else {
-        this.onGround = false;
-      }
+    // enemies
+    state.units = [];
+    const mobCount = 5 + state.floor;
+    for (let i=0;i<mobCount;i++){
+      let pos;
+      do { pos = choice(empties) } while ((pos.x===p.x && pos.y===p.y) || (pos.x===s.x && pos.y===s.y) || state.units.some(u=>u.x===pos.x && u.y===pos.y));
+      const type = (state.floor%2===0 ? choice(['goblin','slime']) : choice(['slime','goblin']));
+      const stats = enemyStats(type);
+      state.units.push({...stats, x:pos.x, y:pos.y});
+    }
+    // boss on floors 1 and 2; final boss on 3
+    state.bossAlive = true;
+    let bp;
+    do { bp = choice(empties) } while (dist(bp, p) < 6 || (bp.x===s.x && bp.y===s.y));
+    state.units.push({...enemyStats('boss'), x:bp.x, y:bp.y});
 
-      // Handle jump
-      if (this.jumpBuffer > 0 && (this.coyote > 0 || this.jumpCount < MAX_JUMPS-1)) {
-        this.vy = -JUMP_VELOCITY;
-        this.onGround = false;
-        this.coyote = 0;
-        this.jumpBuffer = 0;
-        this.jumpCount++;
+    // treasures
+    const chestCount = 2 + Math.max(0, state.floor-1);
+    for (let i=0;i<chestCount;i++){
+      let tpos;
+      do { tpos = choice(empties) } while (occupied(tpos.x,tpos.y) || (tpos.x===p.x && tpos.y===p.y) || (tpos.x===s.x && tpos.y===s.y));
+      state.map[tpos.y][tpos.x] = glyphs.treasure;
+    }
+  }
+
+  function enemyStats(type){
+    const f = state.floor;
+    if (type==='goblin') return {type, hp: 4+f, atk: 2+Math.floor(f/2), def:1, xp: 5+f, gold: randi(2,6)};
+    if (type==='slime')  return {type, hp: 6+f, atk: 1+Math.floor(f/3), def:2, xp: 6+f, gold: randi(1,5)};
+    if (type==='boss')   return {type, hp: 10+3*f, atk: 2+f, def:2+Math.floor(f/2), xp: 12+4*f, gold: randi(6,12)};
+  }
+
+  function allEmpty(){
+    const arr=[];
+    for (let y=1;y<SIZE-1;y++) for (let x=1;x<SIZE-1;x++)
+      if (state.map[y][x]===glyphs.empty) arr.push({x,y});
+    return arr;
+  }
+  function occupied(x,y){
+    return state.units.some(u=>u.x===x && u.y===y);
+  }
+  function dist(a,b){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)}
+
+  // --- Rendering ------------------------------------------------------------
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+
+  function paint(){
+    const ts = TILE;
+    // background
+    ctx.fillStyle = colors.bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+    // checker floor and grid
+    for (let y=0;y<SIZE;y++){
+      for (let x=0;x<SIZE;x++){
+        const even = (x+y)%2===0;
+        ctx.fillStyle = even ? '#0f1626' : '#0c1220';
+        ctx.fillRect(x*ts,y*ts,ts,ts);
+        ctx.strokeStyle = colors.grid; ctx.globalAlpha = .12;
+        ctx.strokeRect(x*ts+.5,y*ts+.5,ts-1,ts-1);
+        ctx.globalAlpha = 1;
       }
     }
-    resolve(solids, axisX){
-      let collidedY = 0;
-      for (const s of solids){
-        if (!this.r.intersects(s)) continue;
-        // Compute overlap
-        const ox1 = this.r.right - s.left;
-        const ox2 = s.right - this.r.left;
-        const oy1 = this.r.bottom - s.top;
-        const oy2 = s.bottom - this.r.top;
-        const penX = (ox1<ox2? -ox1: ox2);
-        const penY = (oy1<oy2? -oy1: oy2);
-        if (axisX) { // resolve x
-          this.r.x += penX;
-          this.vx = 0;
-        } else { // resolve y
-          this.r.y += penY;
-          if (penY < 0) { // moved up -> landed
-            collidedY = 1; this.vy = 0;
-          } else if (penY > 0) { // moved down -> ceiling
-            collidedY = -1; this.vy = 0;
+    // tiles
+    for (let y=0;y<SIZE;y++){
+      for (let x=0;x<SIZE;x++){
+        const t = state.map[y][x];
+        if (t===glyphs.wall){
+          ctx.fillStyle = colors.wall; ctx.fillRect(x*ts,y*ts,ts,ts);
+          ctx.strokeStyle = colors.wallEdge; ctx.strokeRect(x*ts+.5,y*ts+.5,ts-1,ts-1);
+        }
+        if (t===glyphs.treasure){
+          drawGlyph('T', x,y, colors.treasure);
+        }
+        if (t===glyphs.stairs){
+          drawGlyph('>', x,y, colors.stairs);
+        }
+      }
+    }
+    // units
+    for (const u of state.units){
+      if (u.type==='goblin') drawGlyph('G',u.x,u.y,colors.goblin);
+      else if (u.type==='slime') drawGlyph('S',u.x,u.y,colors.slime);
+      else drawGlyph('B',u.x,u.y,colors.boss);
+    }
+    // player
+    drawGlyph('@', state.player.x, state.player.y, colors.player);
+
+    // floor label
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.fillRect(8,8,110,28);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = 'bold 18px ' + (CSS.supports('font-family: Inter')?'Inter, ':'') + 'system-ui';
+    ctx.fillText(`Floor ${state.floor}`, 16, 28);
+  }
+
+  function drawGlyph(g, x, y, color){
+    const ts=TILE;
+    ctx.fillStyle = color;
+    ctx.font = 'bold 40px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline='middle';
+    ctx.fillText(g, x*ts+ts/2, y*ts+ts/2+2);
+  }
+
+  // --- UI sync --------------------------------------------------------------
+  const hpFill = document.getElementById('hpFill');
+  const xpFill = document.getElementById('xpFill');
+  const hpText = document.getElementById('hpText');
+  const lvlText = document.getElementById('lvlText');
+  const atkText = document.getElementById('atkText');
+  const defText = document.getElementById('defText');
+  const goldText = document.getElementById('goldText');
+  const potsText = document.getElementById('potsText');
+  const invDiv = document.getElementById('inv');
+  const ariaStatus = document.getElementById('ariaStatus');
+
+  function syncUI(){
+    const p = state.player;
+    hpText.textContent = `${p.hp}/${p.maxHp}`;
+    hpFill.style.width = `${(p.hp/p.maxHp)*100}%`;
+    xpFill.style.width = `${(p.xp/p.next)*100}%`;
+    lvlText.textContent = `Lv ${p.lvl}`;
+    atkText.textContent = p.atk;
+    defText.textContent = p.def;
+    goldText.textContent = p.gold;
+    potsText.textContent = p.potions;
+    invDiv.textContent = state.items.length ? 'Inventory: ' + state.items.map(i=>`${i.name} x${i.qty}`).join(', ') : 'Inventory: (empty)';
+    ariaStatus.textContent = `HP ${p.hp} of ${p.maxHp}, Level ${p.lvl}, Gold ${p.gold}`;
+  }
+
+  // --- Input & turns --------------------------------------------------------
+  window.addEventListener('keydown', e=>{
+    if (dirs[e.code]){
+      e.preventDefault();
+      const [dx,dy] = dirs[e.code];
+      tryStep(dx,dy);
+    }
+    if (e.code==='Space'){
+      e.preventDefault();
+      // Wait a turn (enemies move)
+      enemyTurn();
+      endTurn();
+    }
+  });
+
+  document.getElementById('btnPotion').addEventListener('click', drinkPotion);
+  document.getElementById('btnNew').addEventListener('click', ()=>{newRun();});
+  document.getElementById('btnSave').addEventListener('click', saveGame);
+  document.getElementById('btnLoad').addEventListener('click', loadGame);
+  document.getElementById('btnHelp').addEventListener('click', ()=> {
+    log(`Controls: Move with WASD/Arrows. Bump into an enemy to attack. <kbd>Space</kbd> to wait a turn. Potions heal 6 HP.`);
+    log(`Win: Reach Floor 3's stairs after defeating bosses on each floor.`);
+  });
+
+  function tryStep(dx,dy){
+    const p = state.player;
+    const nx=p.x+dx, ny=p.y+dy;
+    // bounds
+    if (nx<0||ny<0||nx>=SIZE||ny>=SIZE) return;
+    // wall
+    if (state.map[ny][nx]===glyphs.wall){ log(`A wall blocks your path.`); return; }
+    // enemy?
+    const u = state.units.find(u=>u.x===nx && u.y===ny);
+    if (u){
+      attack(p,u);
+      if (u.hp<=0){
+        // loot
+        const idx = state.units.indexOf(u);
+        state.units.splice(idx,1);
+        const gold = u.gold;
+        p.gold += gold;
+        p.xp += u.xp;
+        log(`You defeated the ${u.type}! +${u.xp} XP, +${gold} gold.`);
+        maybeDrop();
+        checkLevelUp();
+        if (u.type==='boss'){
+          state.bossAlive = false;
+          log(`Boss defeated! The air shimmers...`);
+        }
+      }
+    } else {
+      // move
+      p.x=nx; p.y=ny;
+      // tile effects
+      const t = state.map[ny][nx];
+      if (t===glyphs.treasure){
+        state.map[ny][nx] = glyphs.empty;
+        const reward = openChest();
+        log(reward.msg);
+      } else if (t===glyphs.stairs){
+        if (state.bossAlive){
+          log(`A strange force bars your way. The boss still lurks.`);
+        } else {
+          state.floor++;
+          // win condition
+          if (state.floor>3){
+            log(`You step beyond the third floor. Victory! 🎉`);
+            saveAuto('victory', true);
+            // freeze movement by removing enemies and making stairs walls
+            state.units.length=0;
+            state.map[state.player.y][state.player.x]=glyphs.empty;
+          } else {
+            log(`You descend to Floor ${state.floor}.`);
+            // scale player a bit
+            state.player.maxHp += 2; state.player.hp = state.player.maxHp;
+            state.player.atk += 1; // slight boost per floor
+            generateFloor();
           }
         }
       }
-      return collidedY;
     }
-    draw(cam){
-      const {x,y,w,h} = this.r;
-      // body
-      ctx.fillStyle = '#7aa2ff';
-      ctx.fillRect(Math.floor(x - cam.x), Math.floor(y - cam.y), w, h);
-      // face
-      ctx.fillStyle = '#0e0f14';
-      const px = Math.floor(x - cam.x), py = Math.floor(y - cam.y);
-      ctx.fillRect(px+8, py+12, 6, 6);
-      ctx.fillRect(px+18, py+12, 6, 6);
-      ctx.fillRect(px+10, py+26, 12, 4);
+    // enemy turn after player acts (if game ongoing)
+    if (state.floor<=3 && state.player.hp>0){
+      enemyTurn();
+    }
+    endTurn();
+  }
+
+  function attack(attacker, defender){
+    const hit = Math.max(0, attacker.atk + randi(0,2) - defender.def);
+    defender.hp -= Math.max(1, hit);
+    if (attacker===state.player){
+      log(`You hit the ${defender.type} for ${Math.max(1,hit)}.`);
+    } else {
+      log(`The ${attacker.type} hits you for ${Math.max(1,hit)}.`);
     }
   }
 
-  class Enemy {
-    constructor(x,y,w=36,h=36, minX=x-80, maxX=x+80, speed=90){
-      this.r = new Rect(x,y,w,h);
-      this.minX=minX; this.maxX=maxX; this.speed=speed;
-      this.dir = Math.random()<.5?-1:1;
-      this.dead = false;
-    }
-    update(dt, solids){
-      this.r.x += this.dir*this.speed*dt;
-      // reverse at bounds or when hitting wall
-      if (this.r.x < this.minX){ this.r.x=this.minX; this.dir=1; }
-      if (this.r.x+this.r.w > this.maxX){ this.r.x=this.maxX-this.r.w; this.dir=-1; }
-      // simple gravity/ground stick
-      this.r.y += 800*dt;
-      for (const s of solids){
-        if (this.r.intersects(s)){
-          // resolve Y only (stick to platforms)
-          const oy1 = this.r.bottom - s.top;
-          const oy2 = s.bottom - this.r.top;
-          const penY = (oy1<oy2? -oy1: oy2);
-          this.r.y += penY;
+  function enemyTurn(){
+    const p = state.player;
+    for (const u of state.units){
+      // If adjacent, attack. Otherwise move toward player with simple path bias.
+      const dx = Math.sign(p.x - u.x), dy = Math.sign(p.y - u.y);
+      if (Math.abs(p.x-u.x)+Math.abs(p.y-u.y)===1){
+        attack(u,p);
+        if (p.hp<=0){ log(`You have fallen... 💀`); break; }
+      } else {
+        // try step in a shuffled priority
+        const options = state.rng()<0.5 ? [[dx,0],[0,dy]] : [[0,dy],[dx,0]];
+        for (const [mx,my] of options){
+          const nx=u.x+mx, ny=u.y+my;
+          if (!walkable(nx,ny)) continue;
+          if (occupied(nx,ny) || (nx===p.x && ny===p.y)) continue;
+          u.x=nx; u.y=ny; break;
         }
       }
     }
-    draw(cam){
-      const {x,y,w,h} = this.r;
-      ctx.fillStyle = '#ff6b6b';
-      ctx.fillRect(Math.floor(x - cam.x), Math.floor(y - cam.y), w, h);
-      // eyes
-      ctx.fillStyle = '#141824';
-      const px = Math.floor(x - cam.x), py = Math.floor(y - cam.y);
-      ctx.fillRect(px+6, py+10, 8, 8);
-      ctx.fillRect(px+w-14, py+10, 8, 8);
+  }
+  function walkable(x,y){
+    if (x<0||y<0||x>=SIZE||y>=SIZE) return false;
+    const t=state.map[y][x];
+    return t!==glyphs.wall;
+  }
+
+  function endTurn(){
+    // small chance of ambient message
+    if (state.rng() < 0.05) ambient();
+    // redraw + UI
+    paint();
+    syncUI();
+    // check death
+    if (state.player.hp<=0){
+      log(`Run over. Click "New Run" to try again.`);
     }
   }
 
-  class Coin {
-    constructor(x,y){ this.r=new Rect(x,y,20,20); this.t=0; this.taken=false; }
-    update(dt){ this.t+=dt; }
-    draw(cam){
-      if (this.taken) return;
-      const {x,y,w,h}=this.r;
-      const bob = Math.sin(this.t*4)*4;
-      ctx.save();
-      ctx.translate(Math.floor(x - cam.x + w/2), Math.floor(y - cam.y + h/2 + bob));
-      ctx.rotate(Math.sin(this.t*3)*0.25);
-      ctx.fillStyle = '#ffd166';
-      ctx.beginPath(); ctx.ellipse(0,0,12,8,0,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#b3871d';
-      ctx.fillRect(-1, -6, 2, 12);
-      ctx.restore();
+  function ambient(){
+    const lines = [
+      'You hear distant dripping.',
+      'A draft chills your neck.',
+      'Coins clink somewhere nearby.',
+      'Your torch flickers.',
+      'Scratching echoes in the dark.'
+    ];
+    log(choice(lines));
+  }
+
+  function maybeDrop(){
+    const p = state.player;
+    if (state.rng()<0.4){
+      const roll = state.rng();
+      if (roll<0.5){ p.potions++; log(`You found a potion.`); }
+      else { const g = randi(3,8); p.gold+=g; log(`You scoop ${g} extra gold.`);}
     }
   }
 
-  class MovingPlatform {
-    constructor(x,y,w,h,dx1,dy1,dx2,dy2, speed=60){
-      this.base = {x,y};
-      this.r=new Rect(x,y,w,h);
-      this.a={x:dx1,y:dy1}; this.b={x:dx2,y:dy2};
-      this.t=0; this.speed=speed; this.forward=true;
+  function openChest(){
+    const roll = state.rng();
+    if (roll < .35){ state.player.potions++; return {msg:`A potion nestled in velvet. +1 potion.`}; }
+    if (roll < .7){
+      const g = randi(5,16); state.player.gold += g; return {msg:`A tidy sum of coins. +${g} gold.`};
     }
-    update(dt){
-      const seg = this.forward? this.b : this.a;
-      const target = {x:this.base.x+seg.x, y:this.base.y+seg.y};
-      const dirx = target.x - this.r.x, diry = target.y - this.r.y;
-      const dist = Math.hypot(dirx, diry) || 1;
-      const step = Math.min(dist, this.speed*dt);
-      this.r.x += dirx/dist*step;
-      this.r.y += diry/dist*step;
-      if (dist < 1) this.forward = !this.forward;
-    }
-    draw(cam){
-      const {x,y,w,h}=this.r;
-      ctx.fillStyle = '#5c677d';
-      ctx.fillRect(Math.floor(x - cam.x), Math.floor(y - cam.y), w, h);
+    // equipment
+    const equips = [
+      {name:`Iron Ring (+1 DEF)`, def:1},
+      {name:`Bronze Blade (+1 ATK)`, atk:1},
+      {name:`Gleaming Charm (+2 MAX HP)`, maxHp:2},
+    ];
+    const eq = choice(equips);
+    if (eq.def){ state.player.def += eq.def; }
+    if (eq.atk){ state.player.atk += eq.atk; }
+    if (eq.maxHp){ state.player.maxHp += eq.maxHp; state.player.hp = Math.min(state.player.maxHp, state.player.hp+eq.maxHp); }
+    addItem(eq.name);
+    return {msg:`Treasure! You obtained ${eq.name}.`};
+  }
+
+  function addItem(name){
+    const it = state.items.find(i=>i.name===name);
+    if (it) it.qty++; else state.items.push({name, qty:1});
+  }
+
+  function checkLevelUp(){
+    const p=state.player;
+    while (p.xp >= p.next){
+      p.xp -= p.next;
+      p.lvl++;
+      p.next = Math.floor(p.next * 1.6);
+      const gain = choice(['atk','def','hp']);
+      if (gain==='atk'){ p.atk += 1; log(`Level up! ATK +1`); }
+      else if (gain==='def'){ p.def += 1; log(`Level up! DEF +1`); }
+      else { p.maxHp += 3; p.hp = p.maxHp; log(`Level up! Max HP +3 (fully healed)`); }
     }
   }
 
-  // --- Level definition ---
-  // Coordinates are in pixels; origin (0,0) top-left.
-  const level = {
-    width: 2400, height: 1200,
-    spawn: {x: 60, y: 980},
-    goal: new Rect(2200, 180, 60, 60),
-    platforms: [
-      new Rect(0, 1120, 2400, 80), // ground
-      new Rect(0, 900, 200, 20),
-      new Rect(260, 820, 160, 20),
-      new Rect(520, 760, 140, 20),
-      new Rect(720, 700, 200, 20),
-      new Rect(980, 650, 180, 20),
-      new Rect(1260, 620, 120, 20),
-      new Rect(1460, 600, 160, 20),
-      new Rect(1720, 560, 160, 20),
-      new Rect(2000, 520, 240, 20),
-
-      new Rect(360, 1040, 280, 20),
-      new Rect(760, 1000, 240, 20),
-      new Rect(1140, 960, 240, 20),
-      new Rect(1500, 920, 240, 20),
-      new Rect(1840, 880, 300, 20),
-
-      // near goal platforms
-      new Rect(2100, 340, 240, 20),
-      new Rect(2000, 260, 180, 20)
-    ],
-    moving: [
-      new MovingPlatform(1320, 900, 160, 18, 0,0, 0,-180, 70),
-      new MovingPlatform(1720, 760, 160, 18, 0,0, 120,0, 80)
-    ],
-    coins: [],
-    enemies: []
-  };
-
-  // Populate coins
-  const coinSpots = [
-    [90, 860],[300, 790],[560, 730],[760, 670],[1020, 615],[1280,585],[1480,565],[1740,525],[2040,485],
-    [820, 960],[1180, 920],[1540, 880],[1880, 840],
-    [2140, 300],[2040, 220]
-  ];
-  for (const [x,y] of coinSpots){ level.coins.push(new Coin(x,y)); }
-  // Enemies
-  level.enemies.push(new Enemy(820, 964-36, 36,36, 760, 1000, 70));
-  level.enemies.push(new Enemy(1160, 964-36, 36,36, 1140, 1380, 80));
-  level.enemies.push(new Enemy(1480, 924-36, 36,36, 1500, 1740, 90));
-  level.enemies.push(new Enemy(1720, 564-36, 36,36, 1720, 1880, 90));
-
-  // --- Game state ---
-  const player = new Player(level.spawn.x, level.spawn.y);
-  let camera = {x:0, y:0};
-  let score = 0, total = level.coins.length;
-  const uiScore = document.getElementById('score');
-  const uiTotal = document.getElementById('total');
-  uiTotal.textContent = total;
-  const centerMsg = document.getElementById('centerMsg');
-  const centerTitle = document.getElementById('centerTitle');
-  const centerBody = document.getElementById('centerBody');
-
-  let last = performance.now();
-  let acc = 0;
-  let paused = false;
-  let won = false;
-  let gameOver = false;
-
-  function showCenter(title, body){
-    centerTitle.textContent = title;
-    centerBody.innerHTML = body;
-    centerMsg.classList.add('show');
-  }
-  function hideCenter(){ centerMsg.classList.remove('show'); }
-
-  function togglePause(){
-    paused = !paused;
-    if (paused) showCenter('Paused', 'Press <span class="kbd">P</span> to resume');
-    else hideCenter();
+  function drinkPotion(){
+    const p=state.player;
+    if (p.potions<=0){ log(`No potions left.`); return; }
+    p.potions--;
+    const heal = Math.min(6, p.maxHp - p.hp);
+    p.hp += heal;
+    log(`You drink a potion and recover ${heal} HP.`);
+    endTurn();
   }
 
-  window.addEventListener('keydown', (e)=>{
-    if (e.code === 'KeyP'){ togglePause(); }
-    if (e.code === 'Enter' && (won || gameOver)){ restart(); }
-  });
+  // --- Logging --------------------------------------------------------------
+  const logDiv = document.getElementById('log');
+  function log(html){
+    const p = document.createElement('p'); p.innerHTML = html;
+    logDiv.appendChild(p);
+    logDiv.scrollTop = logDiv.scrollHeight;
+  }
+  function clearLog(){ logDiv.innerHTML=''; }
 
-  function restart(){
-    // Reset player & state
-    Object.assign(player.r, {x: level.spawn.x, y: level.spawn.y, w:32, h:42});
-    player.vx=0; player.vy=0; player.dead=false; player.jumpCount=0; won=false; gameOver=false;
-    score = 0; uiScore.textContent = score;
-    for (const c of level.coins){ c.taken=false; }
-    for (const e of level.enemies){ e.dead=false; }
-    hideCenter();
+  // --- Save / Load ----------------------------------------------------------
+  function saveGame(){
+    const save = JSON.stringify(state, (k,v)=>{
+      if (k==='rng') return undefined; // skip function
+      return v;
+    });
+    localStorage.setItem('tinyRPG.save', save);
+    log(`Game saved.`);
+  }
+  function loadGame(){
+    const raw = localStorage.getItem('tinyRPG.save');
+    if (!raw){ log(`No save found.`); return; }
+    const obj = JSON.parse(raw);
+    // carefully copy back
+    const keep = ['floor','player','items','map','units','stairs','bossAlive'];
+    for (const k of keep) state[k] = obj[k];
+    state.rng = mulberry32(Date.now() % 2**31);
+    log(`Save loaded.`);
+    paint(); syncUI();
+  }
+  function saveAuto(key, val){
+    const exists = JSON.parse(localStorage.getItem('tinyRPG.meta')||'{}');
+    exists[key]=val;
+    localStorage.setItem('tinyRPG.meta', JSON.stringify(exists));
   }
 
-  // --- Camera ---
-  const view = {w: ()=>canvas.clientWidth, h: ()=>canvas.clientHeight};
-  function updateCamera(){
-    const marginX = 220, marginY = 160;
-    const targetX = clamp(player.r.x + player.r.w/2 - view.w()/2, 0, level.width - view.w());
-    const targetY = clamp(player.r.y + player.r.h/2 - view.h()/2, 0, level.height - view.h());
-    // Smooth follow
-    camera.x += (targetX - camera.x) * 0.12;
-    camera.y += (targetY - camera.y) * 0.12;
-
-    // Keep player in soft margins
-    const leftSoft = camera.x + marginX;
-    const rightSoft = camera.x + view.w() - marginX - player.r.w;
-    if (player.r.x < leftSoft) camera.x = clamp(player.r.x - marginX, 0, level.width - view.w());
-    if (player.r.x > rightSoft) camera.x = clamp(player.r.x - (view.w() - marginX - player.r.w), 0, level.width - view.w());
-  }
-
-  // --- Drawing helpers ---
-  function drawBackground(){
-    const skyTop = '#1a2236', skyBot = '#0f1422';
-    const grd = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight);
-    grd.addColorStop(0, skyTop); grd.addColorStop(1, skyBot);
-    ctx.fillStyle = grd; ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
-
-    // Parallax mountains
-    const par = (z)=> (camera.x * z) % 800;
-    const horizon = 520;
-    function drawHumps(offset, height, z){
-      ctx.save();
-      ctx.translate(-par(z), 0);
-      ctx.fillStyle = z<0.2 ? '#1f2a3f' : z<0.4 ? '#1b2436' : '#182032';
-      for (let x=-800; x<canvas.clientWidth+800; x+=320){
-        ctx.beginPath();
-        ctx.moveTo(x, horizon+offset);
-        ctx.quadraticCurveTo(x+80, horizon-60+offset, x+160, horizon+offset);
-        ctx.quadraticCurveTo(x+240, horizon+60+offset, x+320, horizon+offset);
-        ctx.lineTo(x+320, canvas.clientHeight); ctx.lineTo(x, canvas.clientHeight); ctx.closePath();
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-    drawHumps(60, 80, 0.12);
-    drawHumps(120, 100, 0.28);
-  }
-
-  function drawLevel(){
-    // Platforms
-    ctx.fillStyle = '#2d3446';
-    for (const p of level.platforms){
-      const x = Math.floor(p.x - camera.x), y = Math.floor(p.y - camera.y);
-      ctx.fillRect(x, y, p.w, p.h);
-    }
-    // Moving platforms
-    for (const m of level.moving){
-      m.draw(camera);
-    }
-    // Goal
-    const g = level.goal;
-    const gx = Math.floor(g.x - camera.x), gy = Math.floor(g.y - camera.y);
-    ctx.fillStyle = '#7ae582';
-    ctx.fillRect(gx, gy, g.w, g.h);
-    ctx.fillStyle = '#2c8c55';
-    ctx.fillRect(gx+12, gy+12, g.w-24, g.h-24);
-  }
-
-  function aabbs(solids){ return [...level.platforms, ...level.moving.map(m=>m.r)]; }
-
-  // --- Game loop ---
-  const STEP = 1/120; // fixed timestep for stable physics
-  function loop(now){
-    const dt = Math.min(1/20, (now - last)/1000);
-    last = now;
-    if (!paused && !won && !gameOver){
-      acc += dt;
-      while (acc >= STEP){
-        tick(STEP);
-        acc -= STEP;
-      }
-    }
-    render();
-    requestAnimationFrame(loop);
-  }
-
-  function tick(dt){
-    // Update moving platforms first
-    for (const m of level.moving) m.update(dt);
-
-    // Player
-    player.update(dt, aabbs());
-
-    // Coins
-    for (const c of level.coins){
-      c.update(dt);
-      if (!c.taken && player.r.intersects(c.r)){
-        c.taken = true; score++; uiScore.textContent = score;
-      }
-    }
-
-    // Enemies
-    for (const e of level.enemies){
-      if (e.dead) continue;
-      e.update(dt, aabbs());
-      if (!player.dead && player.r.intersects(e.r)){
-        // Check if stomping (player is falling and above enemy)
-        const relY = (player.r.bottom - e.r.top);
-        const falling = player.vy > 120;
-        if (falling && relY > 0 && relY < 26){
-          e.dead = true;
-          player.vy = -JUMP_VELOCITY*0.7; // bounce
-          score += 2; uiScore.textContent = score;
-        } else {
-          // Player dies
-          player.dead = true;
-          gameOver = true;
-          showCenter('Ouch!', 'You got caught. Press <span class="kbd">Enter</span> to retry.');
-        }
-      }
-    }
-
-    // Win check
-    if (!won && player.r.intersects(level.goal)){
-      won = true;
-      showCenter('You Win! 🎉', `Stars collected: <b>${score}</b>/<b>${total}</b><br>Press <span class="kbd">Enter</span> to play again.`);
-    }
-
-    // Fall out of world
-    if (player.r.y > level.height + 200){
-      gameOver = true;
-      showCenter('You Fell!', 'Press <span class="kbd">Enter</span> to retry.');
-    }
-
-    updateCamera();
-  }
-
-  function render(){
-    drawBackground();
-
-    // World
-    ctx.save();
-    drawLevel();
-
-    for (const c of level.coins) c.draw(camera);
-    for (const e of level.enemies) if (!e.dead) e.draw(camera);
-    player.draw(camera);
-    ctx.restore();
-  }
-
-  // Initial splash
-  showCenter('Tiny Platformer',
-    'Collect all the <span style="color:var(--gold);font-weight:700;">stars</span>, avoid enemies, and reach the green goal!<br>' +
-    'Move with <span class="kbd">A</span>/<span class="kbd">D</span> or arrows, jump with <span class="kbd">Z</span>/<span class="kbd">Space</span>, pause with <span class="kbd">P</span>.');
-
-  // Start the loop
-  requestAnimationFrame(loop);
+  // --- Boot -----------------------------------------------------------------
+  newRun();
 })();
 </script>
 </body>
